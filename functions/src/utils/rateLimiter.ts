@@ -1,5 +1,5 @@
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
+import { HttpsError } from 'firebase-functions/v2/https';
 
 /**
  * Simple rate limiter using Firestore counters.
@@ -27,7 +27,7 @@ export async function checkRateLimit(
     );
 
     if (recentCalls.length >= maxCalls) {
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'resource-exhausted',
         `Demasiadas peticiones. Espera ${windowSeconds} segundos.`
       );

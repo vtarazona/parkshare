@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, Image } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { RootStackParamList } from '../types/navigation';
 import AuthStack from './AuthStack';
@@ -21,6 +21,11 @@ export default function RootNavigator() {
   if (loading) {
     return (
       <View style={styles.loading}>
+        <Image
+          source={require('../../assets/logo.png')}
+          style={styles.loadingLogo}
+          resizeMode="contain"
+        />
         <ActivityIndicator size="large" color="#4A90D9" />
       </View>
     );
@@ -88,5 +93,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
+  },
+  loadingLogo: {
+    width: 200,
+    height: 140,
+    marginBottom: 24,
   },
 });

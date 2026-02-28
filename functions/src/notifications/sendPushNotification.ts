@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 
@@ -7,11 +7,11 @@ const expo = new Expo();
 /**
  * Firestore trigger: Send push notification when a reservation status changes.
  */
-export const onReservationChange = functions.firestore
-  .document('reservations/{reservationId}')
-  .onWrite(async (change, _context) => {
-    const before = change.before.data();
-    const after = change.after.data();
+export const onReservationChange = onDocumentWritten(
+  'reservations/{reservationId}',
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
 
     if (!after) return; // Document deleted
 

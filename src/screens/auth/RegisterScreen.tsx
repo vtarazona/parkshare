@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation';
@@ -63,6 +64,11 @@ export default function RegisterScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
+        <Image
+          source={require('../../../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.title}>Crear Cuenta</Text>
         <Text style={styles.subtitle}>Únete a ParkShare</Text>
 
@@ -138,6 +144,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 32,
+  },
+  logo: {
+    width: 160,
+    height: 110,
+    alignSelf: 'center',
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,

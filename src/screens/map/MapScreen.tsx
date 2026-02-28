@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
@@ -124,7 +125,11 @@ export default function MapScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>ParkShare</Text>
+        <Image
+          source={require('../../../assets/logo.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{spots.length} plazas</Text>
         </View>
@@ -206,13 +211,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+  headerLogo: {
+    width: 130,
+    height: 52,
     backgroundColor: 'rgba(255,255,255,0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     borderRadius: 12,
     overflow: 'hidden',
   },

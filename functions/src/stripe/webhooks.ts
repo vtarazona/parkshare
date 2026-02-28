@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 
@@ -8,11 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
-/**
- * Handle Stripe webhook events.
- * Processes payment confirmations and failures.
- */
-export const stripeWebhook = functions.https.onRequest(async (req, res) => {
+export const stripeWebhook = onRequest(async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
@@ -25,7 +21,6 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   }
 
   let event: Stripe.Event;
-
   try {
     event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
   } catch (err: any) {
@@ -43,24 +38,16 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
         const { reservationId, ownerUserId } = paymentIntent.metadata;
 
         if (reservationId) {
-          // Update reservation status
-          await db.doc(`reservations/${reservationId}`).update({
-            status: 'completed',
-          });
+          await db.doc(`reservations/${reservationId}`).update({ status: 'completed' });
 
-          // Update owner's total earnings
           const ownerPayoutCents =
-            paymentIntent.amount -
-            (paymentIntent.application_fee_amount || 0);
+            paymentIntent.amount - (paymentIntent.application_fee_amount || 0);
 
           await db.doc(`users/${ownerUserId}`).update({
             totalEarnings: admin.firestore.FieldValue.increment(ownerPayoutCents),
           });
 
-          console.log(
-            `Payment succeeded for reservation ${reservationId}. ` +
-            `Amount: ${paymentIntent.amount}, Owner payout: ${ownerPayoutCents}`
-          );
+          console.log(`Payment succeeded for reservation ${reservationId}. Amount: ${paymentIntent.amount}`);
         }
         break;
       }
@@ -68,19 +55,14 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const { reservationId } = paymentIntent.metadata;
-
         if (reservationId) {
-          console.error(
-            `Payment failed for reservation ${reservationId}: ` +
-            paymentIntent.last_payment_error?.message
-          );
+          console.error(`Payment failed for reservation ${reservationId}: ${paymentIntent.last_payment_error?.message}`);
         }
         break;
       }
 
       case 'account.updated': {
         const account = event.data.object as Stripe.Account;
-        // Find user with this Connect account and update verification status
         const usersSnapshot = await db
           .collection('users')
           .where('stripeConnectAccountId', '==', account.id)
@@ -88,8 +70,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
           .get();
 
         if (!usersSnapshot.empty) {
-          const userDoc = usersSnapshot.docs[0];
-          await userDoc.ref.update({
+          await usersSnapshot.docs[0].ref.update({
             stripeConnectVerified: account.charges_enabled,
           });
         }

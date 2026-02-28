@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation';
@@ -51,8 +52,11 @@ export default function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.logo}>P</Text>
-        <Text style={styles.title}>ParkShare</Text>
+        <Image
+          source={require('../../../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.subtitle}>Comparte tu plaza, gana dinero</Text>
 
         <TextInput
@@ -111,25 +115,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   logo: {
-    fontSize: 64,
-    fontWeight: 'bold',
-    color: '#4A90D9',
-    textAlign: 'center',
-    backgroundColor: '#E8F0FE',
-    width: 100,
-    height: 100,
-    lineHeight: 100,
-    borderRadius: 50,
+    width: 220,
+    height: 160,
     alignSelf: 'center',
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
