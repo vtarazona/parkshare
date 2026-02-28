@@ -92,6 +92,10 @@ export async function updateSpotStatus(
   });
 }
 
+export async function updateSpotPhoto(spotId: string, photoURL: string) {
+  await updateDoc(doc(db, SPOTS_COLLECTION, spotId), { photoURL });
+}
+
 export async function deleteSpot(spotId: string) {
   await deleteDoc(doc(db, SPOTS_COLLECTION, spotId));
 }

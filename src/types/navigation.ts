@@ -13,8 +13,8 @@ export type MainTabsParamList = {
 export type RootStackParamList = {
   MainTabs: undefined;
   SpotDetails: { spotId: string };
-  Payment: { reservationId: string };
-  PaymentSuccess: { reservationId: string; amount: number };
+  Payment: { reservationId: string; spotId: string };
+  PaymentSuccess: { reservationId: string; amount: number; spotId: string };
   RateSpot: { spotId: string; reservationId: string };
   EditProfile: undefined;
   Subscription: undefined;

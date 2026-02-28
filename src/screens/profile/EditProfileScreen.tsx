@@ -9,12 +9,15 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { updateProfile } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
-import { auth, db } from '../../config/firebase';
+import { db } from '../../config/firebase';
+import { uploadProfilePhoto } from '../../services/storageService';
 import { RootStackParamList } from '../../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
@@ -22,7 +25,28 @@ type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 export default function EditProfileScreen({ navigation }: Props) {
   const { user } = useAuth();
   const [name, setName] = useState(user?.displayName || '');
+  const [photoUri, setPhotoUri] = useState<string | null>(user?.photoURL || null);
   const [loading, setLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso denegado', 'Necesitamos acceso a tus fotos para cambiar la imagen de perfil.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -33,12 +57,25 @@ export default function EditProfileScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
+      let finalPhotoURL = user.photoURL || null;
+
+      // Upload new photo if user selected one (different from current)
+      if (photoUri && photoUri !== user.photoURL) {
+        setUploadingPhoto(true);
+        finalPhotoURL = await uploadProfilePhoto(photoUri, user.uid);
+        setUploadingPhoto(false);
+      }
+
       // Update Firebase Auth profile
-      await updateProfile(user, { displayName: name.trim() });
+      await updateProfile(user, {
+        displayName: name.trim(),
+        photoURL: finalPhotoURL,
+      });
 
       // Update Firestore user doc
       await updateDoc(doc(db, 'users', user.uid), {
         displayName: name.trim(),
+        photoURL: finalPhotoURL,
       });
 
       Alert.alert('Éxito', 'Perfil actualizado', [
@@ -48,6 +85,7 @@ export default function EditProfileScreen({ navigation }: Props) {
       Alert.alert('Error', 'No se pudo actualizar el perfil');
     } finally {
       setLoading(false);
+      setUploadingPhoto(false);
     }
   };
 
@@ -57,11 +95,27 @@ export default function EditProfileScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {(name || 'U')[0].toUpperCase()}
-          </Text>
-        </View>
+        {/* Avatar con botón para cambiar foto */}
+        <TouchableOpacity style={styles.avatarContainer} onPress={handlePickPhoto} disabled={loading}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {(name || 'U')[0].toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={styles.cameraOverlay}>
+            {uploadingPhoto ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.cameraIcon}>📷</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <Text style={styles.changePhotoText}>Toca para cambiar foto</Text>
 
         <Text style={styles.label}>Nombre</Text>
         <TextInput
@@ -102,20 +156,49 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
   },
+  avatarContainer: {
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: '#4A90D9',
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom: 32,
+  },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
   },
   avatarText: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#f5f5f5',
+  },
+  cameraIcon: {
+    fontSize: 14,
+  },
+  changePhotoText: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#4A90D9',
+    marginBottom: 24,
   },
   label: {
     fontSize: 14,

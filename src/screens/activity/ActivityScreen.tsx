@@ -118,6 +118,7 @@ export default function ActivityScreen() {
               await endReservation(activeReservation.id);
               navigation.navigate('Payment', {
                 reservationId: activeReservation.id,
+                spotId: activeReservation.spotId,
               });
             } catch (error: any) {
               Alert.alert('Error', error.message || 'No se pudo finalizar');

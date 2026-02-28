@@ -15,7 +15,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useLocation } from '../../hooks/useLocation';
 import { useAuth } from '../../hooks/useAuth';
-import { createSpot } from '../../services/spotService';
+import { createSpot, updateSpotPhoto } from '../../services/spotService';
 import { uploadSpotPhoto } from '../../services/storageService';
 import PhotoPicker from '../../components/PhotoPicker';
 import { isValidPrice, priceToCents, isValidDescription } from '../../utils/validators';
@@ -95,10 +95,10 @@ export default function ShareSpotScreen() {
         photoURL: null,
       });
 
-      // Upload photo if exists
+      // Upload photo and save URL to Firestore
       if (imageUri) {
         photoURL = await uploadSpotPhoto(imageUri, spotId);
-        // TODO: Update spot doc with photoURL
+        await updateSpotPhoto(spotId, photoURL);
       }
 
       setSuccess(true);

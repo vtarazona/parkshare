@@ -7,7 +7,7 @@ import { formatCents } from '../../utils/formatCurrency';
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentSuccess'>;
 
 export default function PaymentSuccessScreen({ route, navigation }: Props) {
-  const { reservationId, amount } = route.params;
+  const { reservationId, amount, spotId } = route.params;
 
   return (
     <View style={styles.container}>
@@ -26,7 +26,7 @@ export default function PaymentSuccessScreen({ route, navigation }: Props) {
           style={styles.rateButton}
           onPress={() =>
             navigation.replace('RateSpot', {
-              spotId: '', // Will be resolved from reservation
+              spotId,
               reservationId,
             })
           }

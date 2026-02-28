@@ -16,7 +16,7 @@ import { formatCents } from '../../utils/formatCurrency';
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 
 export default function PaymentScreen({ route, navigation }: Props) {
-  const { reservationId } = route.params;
+  const { reservationId, spotId } = route.params;
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -62,6 +62,7 @@ export default function PaymentScreen({ route, navigation }: Props) {
         navigation.replace('PaymentSuccess', {
           reservationId,
           amount,
+          spotId,
         });
       }
     } catch (error: any) {
