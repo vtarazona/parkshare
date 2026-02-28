@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
+import { checkRateLimit } from '../utils/rateLimiter';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16',
@@ -28,6 +29,9 @@ export const createPaymentIntent = functions.https.onCall(
         'Se requiere reservationId'
       );
     }
+
+    // Rate limit: max 5 payment intents per user per minute
+    await checkRateLimit(context.auth.uid, 'createPaymentIntent', 5, 60);
 
     try {
       const db = admin.firestore();

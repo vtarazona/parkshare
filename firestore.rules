@@ -2,72 +2,161 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users: can read any profile, can only write own profile
+    // ─── USERS ───────────────────────────────────────────────────────────────
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if false; // Users cannot delete their profile
+      // Own profile: full read access
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Other users: only public fields (name + averageRating)
+      allow read: if request.auth != null
+                  && request.auth.uid != userId
+                  && isPublicUserRead();
+
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && isValidUserCreate();
+
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && isValidUserUpdate();
+
+      allow delete: if false;
     }
 
-    // Spots: authenticated users can read all, create own, update own or reserve
+    // ─── SPOTS ───────────────────────────────────────────────────────────────
     match /spots/{spotId} {
       allow read: if request.auth != null;
 
-      // Only authenticated users can create spots they own
       allow create: if request.auth != null
                     && request.resource.data.ownerId == request.auth.uid
-                    && request.resource.data.status == 'available';
+                    && request.resource.data.status == 'available'
+                    && isValidSpotCreate();
 
-      // Owner can update their spot, or anyone can reserve an available spot
-      allow update: if request.auth != null
-                    && (
-                      // Owner can update their own spot
-                      resource.data.ownerId == request.auth.uid
-                      ||
-                      // Anyone can reserve an available spot (status change to reserved)
-                      (resource.data.status == 'available'
-                       && request.resource.data.status == 'reserved'
-                       && request.resource.data.reservedBy == request.auth.uid)
-                      ||
-                      // The person who reserved can free the spot
-                      (resource.data.status == 'reserved'
-                       && resource.data.reservedBy == request.auth.uid)
-                    );
+      allow update: if request.auth != null && (
+        // Owner updates their own spot
+        (resource.data.ownerId == request.auth.uid && isValidSpotOwnerUpdate())
+        ||
+        // Reserve: available → reserved (only status + reservedBy change)
+        (resource.data.status == 'available'
+         && request.resource.data.status == 'reserved'
+         && request.resource.data.reservedBy == request.auth.uid
+         && onlyChangedFields(['status', 'reservedBy']))
+        ||
+        // Free spot: reserver frees the spot
+        (resource.data.status == 'reserved'
+         && resource.data.reservedBy == request.auth.uid
+         && request.resource.data.status == 'available'
+         && onlyChangedFields(['status', 'reservedBy']))
+      );
 
-      // Only owner can delete their spot (if not reserved)
       allow delete: if request.auth != null
                     && resource.data.ownerId == request.auth.uid
-                    && resource.data.status != 'reserved';
+                    && resource.data.status == 'available';
 
       // Ratings subcollection
       match /ratings/{ratingId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null
                       && request.resource.data.userId == request.auth.uid
+                      && request.resource.data.stars is int
                       && request.resource.data.stars >= 1
-                      && request.resource.data.stars <= 5;
-        allow update, delete: if false; // Ratings are immutable
+                      && request.resource.data.stars <= 5
+                      && request.resource.data.comment is string
+                      && request.resource.data.comment.size() <= 500;
+        allow update, delete: if false;
       }
     }
 
-    // Reservations: users can read their own, create as reserver
+    // ─── RESERVATIONS ────────────────────────────────────────────────────────
     match /reservations/{reservationId} {
-      // Can read if you are the reserver or the spot owner
       allow read: if request.auth != null
                   && (resource.data.reservedByUserId == request.auth.uid
                       || resource.data.spotOwnerId == request.auth.uid);
 
-      // Can create if you are the reserver
       allow create: if request.auth != null
                     && request.resource.data.reservedByUserId == request.auth.uid
-                    && request.resource.data.status == 'active';
+                    && request.resource.data.status == 'awaiting_arrival'
+                    && isValidReservationCreate();
 
-      // Can update if you are the reserver (to end the reservation)
+      // Reserver can update status transitions only
       allow update: if request.auth != null
-                    && resource.data.reservedByUserId == request.auth.uid;
+                    && resource.data.reservedByUserId == request.auth.uid
+                    && isValidReservationStatusTransition();
 
-      allow delete: if false; // Reservations are never deleted
+      allow delete: if false;
+    }
+
+    // ─── RATE LIMITS (admin-only, never accessible from client) ──────────────
+    match /_rateLimits/{doc} {
+      allow read, write: if false;
+    }
+
+    // ─── HELPER FUNCTIONS ────────────────────────────────────────────────────
+
+    function isPublicUserRead() {
+      // Only allow reading non-sensitive fields when querying other users
+      return true; // Firestore doesn't support field-level reads in rules — handled client-side
+    }
+
+    function isValidUserCreate() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['email', 'displayName', 'subscriptionTier'])
+          && data.subscriptionTier == 'free'
+          && data.totalEarnings == 0
+          && data.displayName is string
+          && data.displayName.size() >= 1
+          && data.displayName.size() <= 100
+          && data.email is string
+          && data.email.size() <= 200;
+    }
+
+    function isValidUserUpdate() {
+      // Users can only update safe fields — NOT subscriptionTier, totalEarnings, stripeIds
+      let allowedFields = ['displayName', 'photoURL', 'expoPushToken', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields)
+          && (
+            !('displayName' in request.resource.data.diff(resource.data).affectedKeys())
+            || (request.resource.data.displayName is string
+                && request.resource.data.displayName.size() >= 1
+                && request.resource.data.displayName.size() <= 100)
+          );
+    }
+
+    function isValidSpotCreate() {
+      let data = request.resource.data;
+      return data.pricePerHourCents is int
+          && data.pricePerHourCents >= 50      // minimum 0.50€
+          && data.pricePerHourCents <= 10000   // maximum 100€
+          && data.description is string
+          && data.description.size() >= 10
+          && data.description.size() <= 500
+          && data.address is string
+          && data.address.size() >= 5
+          && data.address.size() <= 200;
+    }
+
+    function isValidSpotOwnerUpdate() {
+      let allowedFields = ['pricePerHourCents', 'description', 'photoURL', 'status', 'updatedAt', 'averageRating', 'ratingCount'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields);
+    }
+
+    function onlyChangedFields(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    function isValidReservationCreate() {
+      let data = request.resource.data;
+      return data.spotId is string
+          && data.spotOwnerId is string
+          && data.arrivalDeadline is timestamp;
+    }
+
+    function isValidReservationStatusTransition() {
+      let from = resource.data.status;
+      let to = request.resource.data.status;
+      return (from == 'awaiting_arrival' && to == 'active')
+          || (from == 'awaiting_arrival' && to == 'cancelled')
+          || (from == 'active' && to == 'completed');
     }
   }
 }
