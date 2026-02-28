@@ -13,8 +13,6 @@ const PRICE_IDS: Record<string, string> = {
   premium: process.env.STRIPE_PRICE_PREMIUM || 'price_premium_placeholder',
 };
 
-const TIER_BY_PRICE: Record<string, string> = {};
-// Se rellena dinámicamente al procesar webhooks usando los price IDs
 
 /**
  * Create a Stripe Checkout session for a subscription.
@@ -218,12 +216,25 @@ export const subscriptionWebhook = functions.https.onRequest(
 
         if (usersSnap.empty) break;
 
-        // Downgrade to free on payment failure
-        await usersSnap.docs[0].ref.update({
-          subscriptionTier: 'free',
-        });
+        const userDoc = usersSnap.docs[0];
+        const userData = userDoc.data();
 
-        // TODO: send push notification to user about failed payment
+        // Downgrade to free on payment failure
+        await userDoc.ref.update({ subscriptionTier: 'free' });
+
+        // Notify user about failed payment
+        if (userData?.expoPushToken) {
+          const { Expo } = await import('expo-server-sdk');
+          const expo = new Expo();
+          if (Expo.isExpoPushToken(userData.expoPushToken)) {
+            await expo.sendPushNotificationsAsync([{
+              to: userData.expoPushToken,
+              sound: 'default',
+              title: 'Pago de suscripción fallido',
+              body: 'No pudimos cobrar tu suscripción. Tu cuenta ha pasado al plan gratuito.',
+            }]);
+          }
+        }
         break;
       }
 

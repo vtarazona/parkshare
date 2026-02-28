@@ -9,7 +9,7 @@ const expo = new Expo();
  */
 export const onReservationChange = functions.firestore
   .document('reservations/{reservationId}')
-  .onWrite(async (change, context) => {
+  .onWrite(async (change, _context) => {
     const before = change.before.data();
     const after = change.after.data();
 
@@ -17,19 +17,31 @@ export const onReservationChange = functions.firestore
 
     const db = admin.firestore();
 
-    // New reservation created
-    if (!before && after.status === 'active') {
-      // Notify spot owner
-      const ownerDoc = await db
-        .doc(`users/${after.spotOwnerId}`)
-        .get();
+    // Nueva reserva creada (conductor reservó, esperando llegada)
+    if (!before && after.status === 'awaiting_arrival') {
+      const ownerDoc = await db.doc(`users/${after.spotOwnerId}`).get();
       const ownerData = ownerDoc.data();
 
       if (ownerData?.expoPushToken) {
         await sendNotification(
           ownerData.expoPushToken,
           '¡Tu plaza ha sido reservada!',
-          'Alguien está usando tu plaza de parking. Recibirás el pago cuando finalice.'
+          'Un conductor viene en camino. Tiene 5 minutos para llegar.'
+        );
+      }
+      return;
+    }
+
+    // Conductor confirmó llegada (awaiting_arrival → active)
+    if (before?.status === 'awaiting_arrival' && after.status === 'active') {
+      const ownerDoc = await db.doc(`users/${after.spotOwnerId}`).get();
+      const ownerData = ownerDoc.data();
+
+      if (ownerData?.expoPushToken) {
+        await sendNotification(
+          ownerData.expoPushToken,
+          '¡El conductor ha llegado!',
+          'Tu plaza está siendo utilizada. Recibirás el pago al finalizar.'
         );
       }
       return;
@@ -68,11 +80,12 @@ export const onReservationChange = functions.firestore
       return;
     }
 
-    // Reservation cancelled
-    if (before?.status === 'active' && after.status === 'cancelled') {
-      const ownerDoc = await db
-        .doc(`users/${after.spotOwnerId}`)
-        .get();
+    // Reserva cancelada (manual o por expiración del countdown)
+    if (
+      (before?.status === 'awaiting_arrival' || before?.status === 'active') &&
+      after.status === 'cancelled'
+    ) {
+      const ownerDoc = await db.doc(`users/${after.spotOwnerId}`).get();
       const ownerData = ownerDoc.data();
 
       if (ownerData?.expoPushToken) {
@@ -81,6 +94,20 @@ export const onReservationChange = functions.firestore
           'Reserva cancelada',
           'La reserva de tu plaza ha sido cancelada. Tu plaza vuelve a estar disponible.'
         );
+      }
+
+      // Si expiró el countdown, notificar también al conductor
+      if (before?.status === 'awaiting_arrival') {
+        const userDoc = await db.doc(`users/${after.reservedByUserId}`).get();
+        const userData = userDoc.data();
+
+        if (userData?.expoPushToken) {
+          await sendNotification(
+            userData.expoPushToken,
+            'Reserva expirada',
+            'No llegaste a tiempo y tu reserva ha sido cancelada automáticamente.'
+          );
+        }
       }
     }
   });
