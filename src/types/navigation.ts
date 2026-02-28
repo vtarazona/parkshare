@@ -1,6 +1,8 @@
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  PrivacyPolicy: undefined;
+  Terms: undefined;
 };
 
 export type MainTabsParamList = {
@@ -19,4 +21,6 @@ export type RootStackParamList = {
   EditProfile: undefined;
   Subscription: undefined;
   Wallet: undefined;
+  PrivacyPolicy: undefined;
+  Terms: undefined;
 };

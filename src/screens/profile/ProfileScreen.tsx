@@ -8,6 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  BackHandler,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -74,6 +76,24 @@ export default function ProfileScreen() {
         },
       },
     ]);
+  };
+
+  const handleExitApp = () => {
+    if (Platform.OS === 'android') {
+      Alert.alert('Salir de la app', '¿Quieres cerrar ParkShare?', [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Salir',
+          style: 'destructive',
+          onPress: () => BackHandler.exitApp(),
+        },
+      ]);
+    } else {
+      Alert.alert(
+        'Salir de la app',
+        'En iPhone, desliza hacia arriba desde la parte inferior para cerrar la app.'
+      );
+    }
   };
 
   if (loading) {
@@ -185,6 +205,42 @@ export default function ProfileScreen() {
               Cerrar sesión
             </Text>
           </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleExitApp}>
+          <Text style={styles.menuIcon}>❌</Text>
+          <View style={styles.menuInfo}>
+            <Text style={[styles.menuLabel, { color: '#E53935' }]}>
+              Salir de la app
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Legal */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Legal</Text>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('PrivacyPolicy')}
+        >
+          <Text style={styles.menuIcon}>🔒</Text>
+          <View style={styles.menuInfo}>
+            <Text style={styles.menuLabel}>Política de Privacidad</Text>
+          </View>
+          <Text style={styles.menuArrow}>→</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('Terms')}
+        >
+          <Text style={styles.menuIcon}>📄</Text>
+          <View style={styles.menuInfo}>
+            <Text style={styles.menuLabel}>Términos y Condiciones</Text>
+          </View>
+          <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
       </View>
 

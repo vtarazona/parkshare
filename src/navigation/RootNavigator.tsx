@@ -12,6 +12,8 @@ import RateSpotScreen from '../screens/rating/RateSpotScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import SubscriptionScreen from '../screens/subscription/SubscriptionScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
+import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicyScreen';
+import TermsScreen from '../screens/legal/TermsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -82,6 +84,16 @@ export default function RootNavigator() {
         name="Wallet"
         component={WalletScreen}
         options={{ title: 'Mi Wallet', headerStyle: { backgroundColor: '#4CAF50' } }}
+      />
+      <Stack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ title: 'Política de Privacidad' }}
+      />
+      <Stack.Screen
+        name="Terms"
+        component={TermsScreen}
+        options={{ title: 'Términos y Condiciones' }}
       />
     </Stack.Navigator>
   );
