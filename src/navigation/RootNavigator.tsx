@@ -11,6 +11,7 @@ import PaymentSuccessScreen from '../screens/payment/PaymentSuccessScreen';
 import RateSpotScreen from '../screens/rating/RateSpotScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import SubscriptionScreen from '../screens/subscription/SubscriptionScreen';
+import WalletScreen from '../screens/wallet/WalletScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -71,6 +72,11 @@ export default function RootNavigator() {
         name="Subscription"
         component={SubscriptionScreen}
         options={{ title: 'Plan de Suscripción' }}
+      />
+      <Stack.Screen
+        name="Wallet"
+        component={WalletScreen}
+        options={{ title: 'Mi Wallet', headerStyle: { backgroundColor: '#4CAF50' } }}
       />
     </Stack.Navigator>
   );

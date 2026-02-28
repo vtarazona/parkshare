@@ -97,8 +97,12 @@ export default function ProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
       </View>
 
-      {/* Earnings card */}
-      <View style={styles.earningsCard}>
+      {/* Earnings card — toca para ir al Wallet */}
+      <TouchableOpacity
+        style={styles.earningsCard}
+        onPress={() => navigation.navigate('Wallet')}
+        activeOpacity={0.8}
+      >
         <Text style={styles.earningsLabel}>Ganancias totales</Text>
         <Text style={styles.earningsAmount}>
           {formatCents(profile?.totalEarnings || 0)}
@@ -108,7 +112,8 @@ export default function ProfileScreen() {
             {'★'.repeat(Math.round(profile.averageRating))} Valoración media
           </Text>
         ) : null}
-      </View>
+        <Text style={styles.earningsLink}>Ver mi wallet →</Text>
+      </TouchableOpacity>
 
       {/* Actions */}
       <View style={styles.section}>
@@ -262,6 +267,12 @@ const styles = StyleSheet.create({
   earningsRating: {
     fontSize: 13,
     color: '#FFA000',
+  },
+  earningsLink: {
+    fontSize: 13,
+    color: '#4A90D9',
+    marginTop: 8,
+    fontWeight: '500',
   },
   section: {
     paddingHorizontal: 16,

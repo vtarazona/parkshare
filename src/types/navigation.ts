@@ -18,4 +18,5 @@ export type RootStackParamList = {
   RateSpot: { spotId: string; reservationId: string };
   EditProfile: undefined;
   Subscription: undefined;
+  Wallet: undefined;
 };

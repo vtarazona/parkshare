@@ -23,11 +23,16 @@ export async function signUp(email: string, password: string, displayName: strin
     photoURL: null,
     stripeConnectAccountId: null,
     stripeCustomerId: null,
+    stripeSubscriptionId: null,
     expoPushToken: null,
     createdAt: serverTimestamp(),
     totalEarnings: 0,
     averageRating: 0,
     ratingCount: 0,
+    subscriptionTier: 'free',
+    subscriptionExpiresAt: null,
+    monthlyReservationCount: 0,
+    lastReservationResetAt: null,
   };
 
   await setDoc(doc(db, 'users', user.uid), userProfile);
