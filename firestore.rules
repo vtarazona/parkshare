@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: can read any profile, can only write own profile
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Users cannot delete their profile
+    }
+
+    // Spots: authenticated users can read all, create own, update own or reserve
+    match /spots/{spotId} {
+      allow read: if request.auth != null;
+
+      // Only authenticated users can create spots they own
+      allow create: if request.auth != null
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.status == 'available';
+
+      // Owner can update their spot, or anyone can reserve an available spot
+      allow update: if request.auth != null
+                    && (
+                      // Owner can update their own spot
+                      resource.data.ownerId == request.auth.uid
+                      ||
+                      // Anyone can reserve an available spot (status change to reserved)
+                      (resource.data.status == 'available'
+                       && request.resource.data.status == 'reserved'
+                       && request.resource.data.reservedBy == request.auth.uid)
+                      ||
+                      // The person who reserved can free the spot
+                      (resource.data.status == 'reserved'
+                       && resource.data.reservedBy == request.auth.uid)
+                    );
+
+      // Only owner can delete their spot (if not reserved)
+      allow delete: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid
+                    && resource.data.status != 'reserved';
+
+      // Ratings subcollection
+      match /ratings/{ratingId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+                      && request.resource.data.userId == request.auth.uid
+                      && request.resource.data.stars >= 1
+                      && request.resource.data.stars <= 5;
+        allow update, delete: if false; // Ratings are immutable
+      }
+    }
+
+    // Reservations: users can read their own, create as reserver
+    match /reservations/{reservationId} {
+      // Can read if you are the reserver or the spot owner
+      allow read: if request.auth != null
+                  && (resource.data.reservedByUserId == request.auth.uid
+                      || resource.data.spotOwnerId == request.auth.uid);
+
+      // Can create if you are the reserver
+      allow create: if request.auth != null
+                    && request.resource.data.reservedByUserId == request.auth.uid
+                    && request.resource.data.status == 'active';
+
+      // Can update if you are the reserver (to end the reservation)
+      allow update: if request.auth != null
+                    && resource.data.reservedByUserId == request.auth.uid;
+
+      allow delete: if false; // Reservations are never deleted
+    }
+  }
+}
