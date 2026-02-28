@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ParkShare — Documento de Funcionamiento</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }
+  .cover { background: linear-gradient(135deg, #4A90D9, #2c6fad); color: white; padding: 60px 40px; text-align: center; }
+  .cover h1 { font-size: 48px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; }
+  .cover p { font-size: 20px; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+  .cover .badge { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 6px 18px; font-size: 14px; margin-top: 20px; }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+  h2 { font-size: 26px; color: #4A90D9; margin: 40px 0 16px; border-left: 5px solid #4A90D9; padding-left: 16px; }
+  h3 { font-size: 18px; color: #2c6fad; margin: 24px 0 10px; }
+  p { margin-bottom: 12px; font-size: 15px; }
+  .intro-box { background: white; border-radius: 16px; padding: 24px 28px; margin: 30px 0; box-shadow: 0 4px 16px rgba(74,144,217,0.1); border-left: 6px solid #4A90D9; font-size: 16px; line-height: 1.8; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0 32px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 20px 0 32px; }
+  .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .card .icon { font-size: 36px; margin-bottom: 10px; }
+  .card h4 { font-size: 16px; font-weight: 700; color: #333; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: #666; margin: 0; }
+  .card.blue { border-top: 4px solid #4A90D9; }
+  .card.green { border-top: 4px solid #4CAF50; }
+  .card.orange { border-top: 4px solid #FF9800; }
+  .card.purple { border-top: 4px solid #9C27B0; }
+  .flow-section { background: white; border-radius: 16px; padding: 28px; margin: 24px 0; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
+  .step:last-child { border-bottom: none; }
+  .step-num { background: #4A90D9; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+  .step-content h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .step-content p { font-size: 13px; color: #666; margin: 0; }
+  .arrow { text-align: center; font-size: 24px; color: #4A90D9; padding: 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  th { background: #4A90D9; color: white; padding: 12px 16px; text-align: left; font-size: 14px; }
+  td { padding: 11px 16px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f9fbff; }
+  .status-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 20px 0; }
+  .status { background: #e8f4fd; border: 2px solid #4A90D9; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600; color: #2c6fad; }
+  .status.green { background: #e8f5e9; border-color: #4CAF50; color: #2e7d32; }
+  .status.orange { background: #fff3e0; border-color: #FF9800; color: #e65100; }
+  .status.red { background: #ffebee; border-color: #f44336; color: #c62828; }
+  .arrow-right { font-size: 20px; color: #aaa; }
+  .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+  .plan { background: white; border-radius: 14px; padding: 20px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .plan.basic { border: 3px solid #4A90D9; }
+  .plan.premium { border: 3px solid #FF9800; }
+  .plan h4 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .plan .price { font-size: 32px; font-weight: 800; margin: 8px 0; }
+  .plan .period { font-size: 13px; color: #888; }
+  .plan ul { list-style: none; text-align: left; margin-top: 12px; }
+  .plan ul li { font-size: 13px; padding: 3px 0; color: #555; }
+  .plan ul li::before { content: "✓ "; color: #4CAF50; font-weight: bold; }
+  .plan ul li.no::before { content: "✗ "; color: #f44336; }
+  .tech-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px 0; }
+  .tech-item { background: white; border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
+  .tech-item .tech-icon { font-size: 28px; }
+  .tech-item h5 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .tech-item p { font-size: 12px; color: #888; margin: 0; }
+  .money-box { background: linear-gradient(135deg, #4CAF50, #388E3C); color: white; border-radius: 14px; padding: 24px; margin: 20px 0; }
+  .money-box h3 { color: white; margin: 0 0 16px; font-size: 20px; }
+  .money-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2); font-size: 15px; }
+  .money-row:last-child { border-bottom: none; }
+  .money-row .amount { font-weight: 700; font-size: 18px; }
+  footer { background: #1a1a2e; color: rgba(255,255,255,0.6); text-align: center; padding: 24px; font-size: 13px; margin-top: 60px; }
+  @media print {
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card, .flow-section, table { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>🅿️ ParkShare</h1>
+  <p>Plataforma colaborativa de aparcamiento urbano entre particulares</p>
+  <div class="badge">Documento de Funcionamiento v1.0 · Febrero 2026</div>
+</div>
+
+<div class="container">
+
+  <!-- QUÉ ES -->
+  <div class="intro-box">
+    <strong>ParkShare</strong> es una app móvil que conecta <strong>conductores</strong> que necesitan aparcar con <strong>propietarios</strong> de plazas privadas que no las están usando. El propietario publica su plaza, el conductor la reserva y paga por horas. ParkShare cobra una <strong>comisión del 20%</strong> y transfiere el <strong>80% restante</strong> al propietario automáticamente a través de Stripe.
+  </div>
+
+  <!-- ACTORES -->
+  <h2>👥 Actores del Sistema</h2>
+  <div class="grid-3">
+    <div class="card blue">
+      <div class="icon">🚗</div>
+      <h4>Conductor</h4>
+      <p>Busca plazas cercanas en el mapa, reserva al instante y paga por horas de aparcamiento real.</p>
+    </div>
+    <div class="card green">
+      <div class="icon">🏠</div>
+      <h4>Propietario</h4>
+      <p>Publica su plaza libre, la gestiona desde la app y recibe el 80% de cada reserva.</p>
+    </div>
+    <div class="card orange">
+      <div class="icon">🏢</div>
+      <h4>Plataforma</h4>
+      <p>Gestiona pagos, seguridad y cobro de comisiones. Recibe el 20% de cada transacción.</p>
+    </div>
+  </div>
+
+  <!-- PESTAÑAS -->
+  <h2>📱 Estructura de la App (4 pestañas)</h2>
+  <div class="grid-2">
+    <div class="card blue">
+      <div class="icon">🗺️</div>
+      <h4>Mapa</h4>
+      <p>Google Maps con marcadores de plazas disponibles en tiempo real. Filtrado por geolocalización con algoritmo geohash.</p>
+    </div>
+    <div class="card green">
+      <div class="icon">🅿️</div>
+      <h4>Compartir</h4>
+      <p>Formulario para publicar plazas con ubicación exacta, precio, descripción y foto. Geocoding automático de dirección.</p>
+    </div>
+    <div class="card orange">
+      <div class="icon">⏱️</div>
+      <h4>Actividad</h4>
+      <p>Reserva activa con countdown de 5 minutos y temporizador de duración. Historial de reservas completadas.</p>
+    </div>
+    <div class="card purple">
+      <div class="icon">👤</div>
+      <h4>Perfil</h4>
+      <p>Ganancias, wallet, plan de suscripción, configuración de cobros Stripe Connect y edición de perfil.</p>
+    </div>
+  </div>
+
+  <!-- FLUJO RESERVA -->
+  <h2>🚗 Flujo: Buscar y Reservar una Plaza</h2>
+  <div class="flow-section">
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Descubrir plazas</h4>
+          <p>El GPS obtiene las coordenadas del usuario. Firestore consulta plazas cercanas usando algoritmo geohash (radio ~2 km). Aparecen marcadores azules con el precio en el mapa.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Seleccionar y ver detalles</h4>
+          <p>El usuario toca un marcador → aparece una tarjeta con dirección, precio/hora, distancia y valoración. "Ver detalles" abre la ficha completa con foto y descripción.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Reservar (requiere Basic o Premium)</h4>
+          <p>Transacción atómica en Firestore: spot.status cambia de 'available' a 'reserved'. Se crea el documento Reservation con arrivalDeadline = ahora + 5 minutos.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>⏱️ Countdown: 5 minutos para llegar</h4>
+          <p>Visible en la pestaña Actividad. Si el conductor no llega en 5 minutos, la reserva se cancela automáticamente y la plaza vuelve a estar disponible.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h4>Aparcamiento activo</h4>
+          <p>El conductor pulsa "He llegado". Empieza el temporizador en tiempo real. La plaza está bloqueada para ese conductor hasta que pulse "Salir".</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <h4>Finalizar y pagar</h4>
+          <p>Al pulsar "Salir" se calcula: duración × precio/hora (mínimo 1h). Stripe procesa el cobro. El 80% se transfiere al propietario. El 20% a ParkShare.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-content">
+          <h4>⭐ Valorar la plaza</h4>
+          <p>Tras el pago, el conductor valora la plaza con 1-5 estrellas. La valoración actualiza el promedio del propietario.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADOS RESERVA -->
+  <h3>Estados de una Reserva</h3>
+  <div class="status-flow">
+    <div class="status green">AVAILABLE</div>
+    <div class="arrow-right">→</div>
+    <div class="status">RESERVED</div>
+    <div class="arrow-right">→</div>
+    <div class="status orange">ACTIVE</div>
+    <div class="arrow-right">→</div>
+    <div class="status green">COMPLETED</div>
+  </div>
+  <p style="font-size:13px;color:#888;">*Si el countdown expira sin confirmar llegada: RESERVED → CANCELLED</p>
+
+  <!-- FLUJO PROPIETARIO -->
+  <h2>🅿️ Flujo: Publicar una Plaza</h2>
+  <div class="flow-section">
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Ubicar la plaza</h4>
+          <p>El GPS centra el mapa en la ubicación actual. El propietario arrastra el pin a la posición exacta de su plaza. El sistema detecta la dirección automáticamente (Geocoding API).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Configurar precio y descripción</h4>
+          <p>Precio por hora en euros, descripción de la plaza (tipo, acceso, características) y foto desde cámara o galería.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Publicar</h4>
+          <p>Firestore crea el documento spot con geohash para búsquedas rápidas. La foto se sube a Firebase Storage. La plaza aparece en el mapa de todos los usuarios en segundos.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGOS -->
+  <h2>💰 Sistema de Pagos</h2>
+  <div class="money-box">
+    <h3>Ejemplo: plaza a 2€/hora, 3 horas aparcado</h3>
+    <div class="money-row">
+      <span>Total cobrado al conductor</span>
+      <span class="amount">6,00 €</span>
+    </div>
+    <div class="money-row">
+      <span>Comisión ParkShare (20%)</span>
+      <span class="amount">1,20 €</span>
+    </div>
+    <div class="money-row">
+      <span>Pago al propietario (80%)</span>
+      <span class="amount">4,80 €</span>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Fuente de ingresos</th><th>Detalle</th><th>Periodicidad</th></tr>
+    <tr><td>Comisión por reserva</td><td>20% de cada pago procesado</td><td>Por transacción</td></tr>
+    <tr><td>Suscripción Basic</td><td>4,99€/mes por usuario</td><td>Mensual</td></tr>
+    <tr><td>Suscripción Premium</td><td>9,99€/mes por usuario</td><td>Mensual</td></tr>
+  </table>
+
+  <!-- SUSCRIPCIONES -->
+  <h2>⭐ Planes de Suscripción</h2>
+  <div class="plan-grid">
+    <div class="plan">
+      <h4 style="color:#888">FREE</h4>
+      <div class="price" style="color:#888">0€</div>
+      <div class="period">para siempre</div>
+      <ul>
+        <li>Ver el mapa de plazas</li>
+        <li>Publicar plazas ilimitadas</li>
+        <li class="no">No puede reservar</li>
+        <li class="no">Con anuncios</li>
+      </ul>
+    </div>
+    <div class="plan basic">
+      <h4 style="color:#4A90D9">BASIC</h4>
+      <div class="price" style="color:#4A90D9">4,99€</div>
+      <div class="period">/mes</div>
+      <ul>
+        <li>Todo lo de Free</li>
+        <li>10 reservas al mes</li>
+        <li class="no">Con anuncios</li>
+      </ul>
+    </div>
+    <div class="plan premium">
+      <div style="background:#FF9800;color:white;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:6px">RECOMENDADO</div>
+      <h4 style="color:#FF9800">PREMIUM</h4>
+      <div class="price" style="color:#FF9800">9,99€</div>
+      <div class="period">/mes</div>
+      <ul>
+        <li>Todo lo de Basic</li>
+        <li>Reservas ilimitadas</li>
+        <li>Sin anuncios</li>
+        <li>Soporte prioritario</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- NOTIFICACIONES -->
+  <h2>🔔 Notificaciones Push</h2>
+  <table>
+    <tr><th>Evento</th><th>Destinatario</th><th>Mensaje</th></tr>
+    <tr><td>Nueva reserva</td><td>Propietario</td><td>"Alguien ha reservado tu plaza"</td></tr>
+    <tr><td>Conductor llega</td><td>Propietario</td><td>"El conductor ha llegado"</td></tr>
+    <tr><td>Reserva cancelada</td><td>Propietario</td><td>"La reserva ha sido cancelada"</td></tr>
+    <tr><td>Pago completado</td><td>Propietario</td><td>"Has recibido X€ por tu plaza"</td></tr>
+    <tr><td>Countdown expira</td><td>Conductor</td><td>"Tu tiempo de llegada ha expirado"</td></tr>
+  </table>
+
+  <!-- STACK TÉCNICO -->
+  <h2>⚙️ Tecnologías Utilizadas</h2>
+  <div class="tech-grid">
+    <div class="tech-item"><div class="tech-icon">📱</div><div><h5>React Native + Expo</h5><p>App iOS y Android desde un solo código</p></div></div>
+    <div class="tech-item"><div class="tech-icon">🗺️</div><div><h5>Google Maps</h5><p>Visualización de plazas y geocoding</p></div></div>
+    <div class="tech-item"><div class="tech-icon">🔐</div><div><h5>Firebase Auth</h5><p>Registro e inicio de sesión seguro</p></div></div>
+    <div class="tech-item"><div class="tech-icon">🗄️</div><div><h5>Cloud Firestore</h5><p>Base de datos en tiempo real</p></div></div>
+    <div class="tech-item"><div class="tech-icon">📸</div><div><h5>Firebase Storage</h5><p>Fotos de plazas de aparcamiento</p></div></div>
+    <div class="tech-item"><div class="tech-icon">⚡</div><div><h5>Cloud Functions</h5><p>Lógica de pagos y webhooks (Node.js 18)</p></div></div>
+    <div class="tech-item"><div class="tech-icon">💳</div><div><h5>Stripe + Connect</h5><p>Cobros y transferencias automáticas</p></div></div>
+    <div class="tech-item"><div class="tech-icon">📍</div><div><h5>Geohash + GPS</h5><p>Búsqueda geoespacial ultrarrápida</p></div></div>
+  </div>
+
+</div>
+
+<footer>
+  ParkShare v1.0.0 · "Comparte tu plaza, gana dinero" · Febrero 2026
+</footer>
+
+</body>
+</html>
