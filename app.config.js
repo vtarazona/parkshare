@@ -46,6 +46,12 @@ module.exports = {
         'CAMERA',
       ],
     },
+    extra: {
+      eas: {
+        projectId: '61988bd3-2bf1-4c94-8537-ab2a89b027c3',
+      },
+    },
+    owner: 'vtarazona',
     plugins: [
       [
         '@stripe/stripe-react-native',
