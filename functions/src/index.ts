@@ -14,3 +14,6 @@ export { onReservationChange } from './notifications/sendPushNotification';
 
 // Scheduled functions
 export { cleanupExpiredSpots } from './spots/cleanupExpiredSpots';
+
+// Moderation
+export { autoHideReportedSpots } from './spots/autoHideReportedSpots';

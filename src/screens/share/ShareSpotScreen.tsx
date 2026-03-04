@@ -20,6 +20,9 @@ import { uploadSpotPhoto } from '../../services/storageService';
 import PhotoPicker from '../../components/PhotoPicker';
 import { isValidPrice, priceToCents, isValidDescription } from '../../utils/validators';
 import { trackEvent } from '../../services/analyticsService';
+import { distanceBetween } from '../../utils/geohash';
+
+const MAX_DISTANCE_FROM_SPOT_KM = 0.15; // 150 metros
 
 const { width } = Dimensions.get('window');
 
@@ -41,6 +44,16 @@ export default function ShareSpotScreen() {
   const mapRef = useRef<MapView>(null);
 
   const currentCoord = markerCoord || location;
+
+  const isWithinRange =
+    location && currentCoord
+      ? distanceBetween(
+          location.latitude,
+          location.longitude,
+          currentCoord.latitude,
+          currentCoord.longitude
+        ) <= MAX_DISTANCE_FROM_SPOT_KM
+      : true;
 
   const handleMapPress = (e: any) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -78,6 +91,24 @@ export default function ShareSpotScreen() {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
+    }
+
+    // Verificación GPS: el publisher debe estar cerca de la plaza
+    if (location) {
+      const distanceKm = distanceBetween(
+        location.latitude,
+        location.longitude,
+        currentCoord.latitude,
+        currentCoord.longitude
+      );
+      if (distanceKm > MAX_DISTANCE_FROM_SPOT_KM) {
+        Alert.alert(
+          'Estás lejos de la plaza',
+          `Debes estar a menos de 150 metros de la plaza para publicarla. Estás a ${Math.round(distanceKm * 1000)} metros.\n\nColoca el pin en tu posición actual o acércate a la plaza.`,
+          [{ text: 'Entendido' }]
+        );
+        return;
+      }
     }
 
     setLoading(true);
@@ -196,6 +227,16 @@ export default function ShareSpotScreen() {
           </MapView>
         </View>
 
+        {/* Indicador de proximidad GPS */}
+        <View style={[styles.proximityBadge, isWithinRange ? styles.proximityOk : styles.proximityFar]}>
+          <Text style={styles.proximityIcon}>{isWithinRange ? '✓' : '⚠️'}</Text>
+          <Text style={styles.proximityText}>
+            {isWithinRange
+              ? 'Estás cerca de la plaza — puedes publicar'
+              : 'Debes estar a menos de 150m de la plaza'}
+          </Text>
+        </View>
+
         {/* Address */}
         {address ? (
           <View style={styles.addressBox}>
@@ -236,9 +277,9 @@ export default function ShareSpotScreen() {
           />
 
           <TouchableOpacity
-            style={[styles.shareButton, loading && styles.buttonDisabled]}
+            style={[styles.shareButton, (loading || !isWithinRange) && styles.buttonDisabled]}
             onPress={handleShare}
-            disabled={loading}
+            disabled={loading || !isWithinRange}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -335,6 +376,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  proximityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  proximityOk: {
+    backgroundColor: '#E8F5E9',
+  },
+  proximityFar: {
+    backgroundColor: '#FFF3E0',
+  },
+  proximityIcon: {
+    fontSize: 14,
+  },
+  proximityText: {
+    fontSize: 13,
+    flex: 1,
+    color: '#555',
+    fontWeight: '500',
   },
   addressBox: {
     marginHorizontal: 16,

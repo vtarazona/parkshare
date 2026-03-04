@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  Modal,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -19,6 +20,12 @@ import { reserveSpot } from '../../services/reservationService';
 import { useAuth } from '../../hooks/useAuth';
 import { formatPricePerHour, formatCents } from '../../utils/formatCurrency';
 import { getSubscriptionStatus } from '../../services/subscriptionService';
+import {
+  reportSpot,
+  hasUserReported,
+  REPORT_REASONS,
+  ReportReason,
+} from '../../services/reportService';
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +38,9 @@ export default function SpotDetailsScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [reserving, setReserving] = useState(false);
   const [canReserve, setCanReserve] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [alreadyReported, setAlreadyReported] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToSpot(spotId, (updatedSpot) => {
@@ -45,7 +55,28 @@ export default function SpotDetailsScreen({ route, navigation }: Props) {
     getSubscriptionStatus(user.uid).then((status) => {
       setCanReserve(status.tier !== 'free');
     });
-  }, [user]);
+    hasUserReported(spotId, user.uid).then(setAlreadyReported);
+  }, [user, spotId]);
+
+  const handleReport = async (reason: ReportReason) => {
+    if (!user) return;
+    setReporting(true);
+    try {
+      await reportSpot(spotId, user.uid, reason);
+      setAlreadyReported(true);
+      setReportModalVisible(false);
+      Alert.alert(
+        'Reporte enviado',
+        'Gracias por avisar. Revisaremos esta plaza y tomaremos medidas si es necesario.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      setReportModalVisible(false);
+      Alert.alert('Error', error.message || 'No se pudo enviar el reporte');
+    } finally {
+      setReporting(false);
+    }
+  };
 
   const handleReserve = async () => {
     if (!user || !spot) return;
@@ -222,7 +253,59 @@ export default function SpotDetailsScreen({ route, navigation }: Props) {
         </View>
       )}
 
+      {/* Botón reportar — solo visible para otros usuarios, no el owner */}
+      {!isOwner && (
+        <TouchableOpacity
+          style={[styles.reportButton, alreadyReported && styles.reportedButton]}
+          onPress={() => {
+            if (!alreadyReported) setReportModalVisible(true);
+          }}
+          disabled={alreadyReported}
+        >
+          <Text style={[styles.reportButtonText, alreadyReported && styles.reportedButtonText]}>
+            {alreadyReported ? 'Plaza reportada' : 'Reportar esta plaza'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       <View style={{ height: 40 }} />
+
+      {/* Modal de motivos de reporte */}
+      <Modal
+        visible={reportModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+              <Text style={styles.modalCancel}>Cancelar</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Reportar plaza</Text>
+            <View style={{ width: 60 }} />
+          </View>
+
+          <Text style={styles.modalSubtitle}>
+            ¿Por qué quieres reportar esta plaza?
+          </Text>
+
+          {REPORT_REASONS.map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              style={[styles.reasonItem, reporting && styles.buttonDisabled]}
+              onPress={() => handleReport(item.key)}
+              disabled={reporting}
+            >
+              {reporting ? (
+                <ActivityIndicator size="small" color="#4A90D9" />
+              ) : (
+                <Text style={styles.reasonText}>{item.label}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -360,5 +443,72 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
     marginTop: 4,
+  },
+  reportButton: {
+    marginHorizontal: 24,
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E53935',
+  },
+  reportedButton: {
+    borderColor: '#ccc',
+  },
+  reportButtonText: {
+    color: '#E53935',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  reportedButtonText: {
+    color: '#aaa',
+  },
+  modal: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalCancel: {
+    fontSize: 15,
+    color: '#666',
+    width: 60,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  reasonItem: {
+    backgroundColor: '#fff',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    minHeight: 56,
+    justifyContent: 'center',
+  },
+  reasonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });
