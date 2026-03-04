@@ -136,30 +136,36 @@ Luego desinstalar el APK anterior e instalar el nuevo.
 
 ## 6. Próximas fases (roadmap)
 
-### Fase 3 — UX / Producto
-- Filtros en el mapa (precio, distancia, tipo de plaza)
-- Búsqueda de dirección (Google Places Autocomplete)
-- Pantallas de estado vacío (sin plazas, sin reservas, etc.)
-- Flujo de onboarding para nuevos usuarios
-- Mejoras de rendimiento y animaciones
+### ✅ Fase 3 — UX / Producto (completada 2026-03-04)
+- ✅ Filtros en el mapa: precio máximo, radio de búsqueda (0.5/1/2/5 km), ordenar por distancia/precio/rating
+  - `src/components/MapFilters.tsx` — panel modal con chips seleccionables
+- ✅ Búsqueda de dirección con Google Places Autocomplete
+  - `src/components/PlaceSearch.tsx` — barra de búsqueda con debounce + lista de predicciones
+- ✅ Pantallas de estado vacío mejoradas
+  - MapScreen: mensaje cuando no hay plazas / no hay plazas con filtros / sin permiso GPS
+  - ShareSpotScreen: estado visual con icono cuando no hay permiso de ubicación
+- ⬜ Flujo de onboarding para nuevos usuarios
+- ⬜ Mejoras de rendimiento y animaciones
 
 ### Fase 4 — Lanzamiento
 - Stripe modo producción (activar live keys)
 - Subir a Google Play (Internal Testing → Closed Beta → Production)
 - Subir a App Store (TestFlight → Review → Production)
 - Landing page pública
-- Analytics (Firebase Analytics / Mixpanel)
+- ✅ Analytics — servicio propio sobre Firestore (`src/services/analyticsService.ts`)
+  - Eventos: sign_up, login, spot_published, reservation_created, payment_completed, map_filter_applied
+  - Datos en colección `analytics_events` en Firestore
 - Panel de administración
 
 ---
 
 ## 7. Últimos commits en GitHub
 ```
+ea63b1c Añadir documento de estado del proyecto para continuidad de sesiones
 9088dc0 EAS Build: configuración proyecto y perfil de compilación
 d59e574 Fase 2: Documentos legales + cumplimiento GDPR
 3a4218d Semana 2: Cloud Functions v2 + logo integrado en toda la app
 8526db2 Fix notificaciones push y limpieza de variables no usadas
-f91c8e9 Fix Semana 1: fotos, valoraciones y foto de perfil
 ```
 
 ---

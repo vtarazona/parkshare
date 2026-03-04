@@ -19,6 +19,7 @@ import { createSpot, updateSpotPhoto } from '../../services/spotService';
 import { uploadSpotPhoto } from '../../services/storageService';
 import PhotoPicker from '../../components/PhotoPicker';
 import { isValidPrice, priceToCents, isValidDescription } from '../../utils/validators';
+import { trackEvent } from '../../services/analyticsService';
 
 const { width } = Dimensions.get('window');
 
@@ -101,6 +102,11 @@ export default function ShareSpotScreen() {
         await updateSpotPhoto(spotId, photoURL);
       }
 
+      trackEvent('spot_published', user.uid, {
+        pricePerHourCents: priceToCents(price),
+        hasPhoto: !!imageUri,
+      });
+
       setSuccess(true);
       setPrice('');
       setDescription('');
@@ -132,8 +138,10 @@ export default function ShareSpotScreen() {
   if (!location) {
     return (
       <View style={styles.centered}>
+        <Text style={styles.emptyIcon}>📍</Text>
+        <Text style={styles.emptyTitle}>Ubicación no disponible</Text>
         <Text style={styles.errorText}>
-          No se pudo obtener tu ubicación. Activa el GPS.
+          Para compartir tu plaza necesitamos saber dónde estás. Activa el GPS en los ajustes de tu dispositivo.
         </Text>
       </View>
     );
@@ -259,6 +267,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
+    backgroundColor: '#f5f5f5',
+  },
+  emptyIcon: {
+    fontSize: 52,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 10,
   },
   loadingText: {
     marginTop: 12,
@@ -266,9 +285,10 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   errorText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
+    color: '#888',
     textAlign: 'center',
+    lineHeight: 22,
   },
   header: {
     paddingTop: 60,

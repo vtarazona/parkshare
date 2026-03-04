@@ -1,13 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../types/navigation';
 import { formatCents } from '../../utils/formatCurrency';
+import { useAuth } from '../../hooks/useAuth';
+import { trackEvent } from '../../services/analyticsService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentSuccess'>;
 
 export default function PaymentSuccessScreen({ route, navigation }: Props) {
   const { reservationId, amount, spotId } = route.params;
+  const { user } = useAuth();
+
+  useEffect(() => {
+    trackEvent('payment_completed', user?.uid ?? null, {
+      amountCents: amount,
+      reservationId,
+      spotId,
+    });
+  }, []);
 
   return (
     <View style={styles.container}>

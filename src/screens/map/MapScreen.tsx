@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,26 +14,95 @@ import { useLocation } from '../../hooks/useLocation';
 import { useNearbySpots } from '../../hooks/useNearbySpots';
 import SpotMarker from '../../components/SpotMarker';
 import SpotCard from '../../components/SpotCard';
+import MapFilters, { FilterState, DEFAULT_FILTERS } from '../../components/MapFilters';
+import PlaceSearch from '../../components/PlaceSearch';
 import { Spot } from '../../types/spot';
 import { RootStackParamList } from '../../types/navigation';
 import { distanceBetween } from '../../utils/geohash';
+import { useAuth } from '../../hooks/useAuth';
+import { trackEvent } from '../../services/analyticsService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function MapScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { user } = useAuth();
   const { location, loading: locationLoading, refreshLocation } = useLocation();
-  const { spots, loading: spotsLoading } = useNearbySpots(
-    location?.latitude ?? null,
-    location?.longitude ?? null
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+
+  const handleApplyFilters = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters);
+    trackEvent('map_filter_applied', user?.uid ?? null, {
+      maxPricePerHour: newFilters.maxPricePerHour,
+      radiusKm: newFilters.radiusKm,
+      sortBy: newFilters.sortBy,
+    });
+  }, [user]);
+  const [searchCenter, setSearchCenter] = useState<{ latitude: number; longitude: number } | null>(
+    null
   );
+
+  const center = searchCenter ?? location;
+
+  const { spots, loading: spotsLoading } = useNearbySpots(
+    center?.latitude ?? null,
+    center?.longitude ?? null,
+    filters.radiusKm
+  );
+
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null);
   const mapRef = useRef<MapView>(null);
 
-  const initialRegion: Region | undefined = location
+  const getDistance = useCallback(
+    (spot: Spot) => {
+      if (!location) return undefined;
+      return distanceBetween(
+        location.latitude,
+        location.longitude,
+        spot.location.latitude,
+        spot.location.longitude
+      );
+    },
+    [location]
+  );
+
+  const filteredSpots = useMemo(() => {
+    let result = [...spots];
+
+    if (filters.maxPricePerHour !== null) {
+      result = result.filter(
+        (s) => s.pricePerHourCents <= filters.maxPricePerHour! * 100
+      );
+    }
+
+    if (filters.sortBy === 'price') {
+      result.sort((a, b) => a.pricePerHourCents - b.pricePerHourCents);
+    } else if (filters.sortBy === 'rating') {
+      result.sort((a, b) => b.averageRating - a.averageRating);
+    } else {
+      // distance
+      result.sort((a, b) => {
+        const da = getDistance(a) ?? Infinity;
+        const db = getDistance(b) ?? Infinity;
+        return da - db;
+      });
+    }
+
+    return result;
+  }, [spots, filters, getDistance]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.maxPricePerHour !== null) count++;
+    if (filters.radiusKm !== DEFAULT_FILTERS.radiusKm) count++;
+    if (filters.sortBy !== DEFAULT_FILTERS.sortBy) count++;
+    return count;
+  }, [filters]);
+
+  const initialRegion: Region | undefined = center
     ? {
-        latitude: location.latitude,
-        longitude: location.longitude,
+        latitude: center.latitude,
+        longitude: center.longitude,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015,
       }
@@ -61,6 +130,7 @@ export default function MapScreen() {
 
   const handleCenterOnUser = useCallback(() => {
     if (location) {
+      setSearchCenter(null);
       mapRef.current?.animateToRegion(
         {
           latitude: location.latitude,
@@ -73,18 +143,26 @@ export default function MapScreen() {
     }
   }, [location]);
 
-  const getDistance = useCallback(
-    (spot: Spot) => {
-      if (!location) return undefined;
-      return distanceBetween(
-        location.latitude,
-        location.longitude,
-        spot.location.latitude,
-        spot.location.longitude
+  const handleSelectPlace = useCallback(
+    (result: { latitude: number; longitude: number; address: string }) => {
+      setSearchCenter({ latitude: result.latitude, longitude: result.longitude });
+      setSelectedSpot(null);
+      mapRef.current?.animateToRegion(
+        {
+          latitude: result.latitude,
+          longitude: result.longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        },
+        600
       );
     },
-    [location]
+    []
   );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchCenter(null);
+  }, []);
 
   if (locationLoading) {
     return (
@@ -100,6 +178,9 @@ export default function MapScreen() {
       <View style={styles.centered}>
         <Text style={styles.errorIcon}>📍</Text>
         <Text style={styles.errorText}>No se pudo obtener tu ubicación</Text>
+        <Text style={styles.errorSubtext}>
+          Activa los permisos de ubicación en Ajustes para ver plazas cercanas.
+        </Text>
         <TouchableOpacity style={styles.retryButton} onPress={refreshLocation}>
           <Text style={styles.retryText}>Reintentar</Text>
         </TouchableOpacity>
@@ -118,29 +199,46 @@ export default function MapScreen() {
         showsMyLocationButton={false}
         onPress={() => setSelectedSpot(null)}
       >
-        {spots.map((spot) => (
+        {filteredSpots.map((spot) => (
           <SpotMarker key={spot.id} spot={spot} onPress={handleSpotPress} />
         ))}
       </MapView>
 
-      {/* Header */}
+      {/* Header: logo + búsqueda */}
       <View style={styles.header}>
         <Image
           source={require('../../../assets/logo.png')}
           style={styles.headerLogo}
           resizeMode="contain"
         />
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{spots.length} plazas</Text>
+        <View style={styles.searchWrapper}>
+          <PlaceSearch onSelectPlace={handleSelectPlace} onClear={handleClearSearch} />
         </View>
       </View>
 
-      {/* Center on user button */}
-      <TouchableOpacity style={styles.centerButton} onPress={handleCenterOnUser}>
-        <Text style={styles.centerButtonText}>📍</Text>
-      </TouchableOpacity>
+      {/* Badge de plazas encontradas */}
+      <View style={styles.badgeRow}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>
+            {filteredSpots.length} plaza{filteredSpots.length !== 1 ? 's' : ''}
+            {activeFilterCount > 0 ? ' (filtradas)' : ''}
+          </Text>
+        </View>
+      </View>
 
-      {/* Selected spot card */}
+      {/* Botones flotantes */}
+      <View style={styles.floatingButtons}>
+        <MapFilters
+          filters={filters}
+          onApply={handleApplyFilters}
+          activeCount={activeFilterCount}
+        />
+        <TouchableOpacity style={styles.centerButton} onPress={handleCenterOnUser}>
+          <Text style={styles.centerButtonText}>📍</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Tarjeta de plaza seleccionada */}
       {selectedSpot && (
         <View style={styles.cardContainer}>
           <SpotCard
@@ -151,7 +249,25 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Loading indicator for spots */}
+      {/* Estado vacío: no hay plazas con los filtros actuales */}
+      {!spotsLoading && filteredSpots.length === 0 && spots.length > 0 && (
+        <View style={styles.emptyFilter}>
+          <Text style={styles.emptyFilterText}>
+            No hay plazas con estos filtros. Prueba a ajustarlos.
+          </Text>
+        </View>
+      )}
+
+      {/* Estado vacío: no hay plazas en la zona */}
+      {!spotsLoading && spots.length === 0 && (
+        <View style={styles.emptyFilter}>
+          <Text style={styles.emptyFilterText}>
+            No hay plazas disponibles en esta zona ahora mismo.
+          </Text>
+        </View>
+      )}
+
+      {/* Indicador de carga */}
       {spotsLoading && (
         <View style={styles.spotsLoading}>
           <ActivityIndicator size="small" color="#4A90D9" />
@@ -186,10 +302,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   errorText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   retryButton: {
     backgroundColor: '#4A90D9',
@@ -208,31 +331,46 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
+    zIndex: 10,
   },
   headerLogo: {
-    width: 130,
-    height: 52,
+    width: 100,
+    height: 40,
     backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: 'hidden',
+    flexShrink: 0,
+  },
+  searchWrapper: {
+    flex: 1,
+    zIndex: 20,
+  },
+  badgeRow: {
+    position: 'absolute',
+    top: 104,
+    left: 16,
   },
   badge: {
     backgroundColor: '#4A90D9',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 16,
   },
   badgeText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
-  centerButton: {
+  floatingButtons: {
     position: 'absolute',
-    bottom: 200,
+    bottom: 210,
     right: 16,
+    gap: 10,
+    alignItems: 'center',
+  },
+  centerButton: {
     backgroundColor: '#fff',
     width: 48,
     height: 48,
@@ -254,9 +392,29 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  emptyFilter: {
+    position: 'absolute',
+    bottom: 110,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  emptyFilterText: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+  },
   spotsLoading: {
     position: 'absolute',
-    top: 100,
+    top: 108,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',

@@ -14,6 +14,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation';
 import { signIn } from '../../services/authService';
+import { trackEvent } from '../../services/analyticsService';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -32,7 +33,8 @@ export default function LoginScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await signIn(email.trim(), password);
+      const user = await signIn(email.trim(), password);
+      trackEvent('login', user.uid, { method: 'email' });
     } catch (error: any) {
       const message =
         error.code === 'auth/invalid-credential'

@@ -15,6 +15,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation';
 import { signUp } from '../../services/authService';
+import { trackEvent } from '../../services/analyticsService';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -51,7 +52,8 @@ export default function RegisterScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await signUp(email.trim(), password, name.trim());
+      const user = await signUp(email.trim(), password, name.trim());
+      trackEvent('sign_up', user.uid, { method: 'email' });
     } catch (error: any) {
       const message =
         error.code === 'auth/email-already-in-use'
