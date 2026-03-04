@@ -320,3 +320,135 @@ projectId: 'parkshare-2b8d6'
 - Servicios como funciones async exportadas
 - Hooks con prefijo `use`
 - Navegación tipada con ParamList
+
+---
+
+## 10. Estrategias de Moderación de Contenido
+
+### Contenido a moderar
+| Tipo | Riesgo |
+|------|--------|
+| Fotos de plazas | Imágenes falsas, inapropiadas |
+| Descripciones | Spam, plazas que no existen, datos de contacto |
+| Valoraciones | Reseñas falsas, insultos |
+| Usuarios | Cuentas falsas, múltiples cuentas |
+
+### Sistema implementado (✅)
+- **Verificación GPS al publicar** (`ShareSpotScreen.tsx`): publisher debe estar a <150m de la plaza
+- **Sistema de reportes** (`reportService.ts` + `SpotDetailsScreen.tsx`): 5 motivos de reporte, deduplicación por usuario
+- **Auto-ocultación** (`functions/src/spots/autoHideReportedSpots.ts`): ≥3 reportes → `status: 'flagged'` + notificación push al owner
+
+### Capas pendientes
+1. **Google Cloud Vision** — moderar fotos automáticamente (~1.50€/1.000 imágenes)
+2. **Detección de texto** — bloquear teléfonos, URLs, palabras clave de fraude en descripciones
+3. **Sistema de karma** — puntos por comportamiento, penalizaciones progresivas
+4. **Panel de admin** — revisar plazas con `status: 'flagged'`
+
+---
+
+## 11. Verificación de Plaza Libre (Anti-fraude)
+
+### Problema
+El publisher dice "me voy" pero el sistema no puede verificarlo automáticamente.
+
+### Implementado (✅)
+- Verificación GPS al publicar: publisher debe estar físicamente en la plaza (radio <150m)
+- Cuenta atrás de 5 min para llegar: si el seeker no confirma llegada → reserva cancelada automáticamente
+- Valoraciones visibles: publishers con mal historial pierden credibilidad
+- Sistema de reportes: seekers pueden marcar "La plaza no existe o no está libre"
+
+### Pendiente
+- Penalizaciones automáticas: publisher con ≥2 reportes válidos → advertencia → suspensión
+- Ampliar tiempo de llegada configurable por ciudad (5 min puede ser poco en horas punta)
+
+---
+
+## 12. De App a Startup — Hoja de Ruta
+
+### Legal y Societario
+| Paso | Coste | Urgencia |
+|------|-------|---------|
+| Constituir SL en España | ~300€ (notaría) | Antes de cobrar dinero real |
+| Cuenta bancaria empresa | 0€ | Con la SL |
+| Modelo 036 (Hacienda) | 0€ | Al constituir |
+| Registro marca "ParkShare" OEPM | ~150€ | Pronto |
+| Seguro responsabilidad civil | ~500€/año | Antes de lanzar |
+
+> Consultar con abogado de startups: ParkShare puede clasificarse como servicio de intermediación (regulación similar a Airbnb/Uber).
+
+### Go-to-Market
+**El problema del huevo y la gallina:** sin publishers no hay seekers, sin seekers no hay publishers.
+
+**Solución: empezar por publishers**
+```
+Fase 1 — Publishers (mes 1-2):
+- Grupos de Facebook/Reddit de conductores urbanos
+- Flyers en zonas de alta rotación
+- Oferta: 0% comisión los primeros 3 meses
+- Objetivo: 50 publishers activos en Madrid
+
+Fase 2 — Seekers (mes 2-3):
+- Google Ads: "aparcar en Madrid centro" (CPC ~0.80€)
+- TikTok/Instagram: vídeo del proceso en 30 segundos
+- PR: nota de prensa a Xataka, El Español, TechCrunch ES
+- Objetivo: 500 descargas, 100 reservas completadas
+```
+
+### Financiación
+| Opción | Cuándo | Importe |
+|--------|--------|---------|
+| Bootstrapping | Ahora | Recursos propios |
+| ENISA Préstamo Joven Emprendedor | Tras constituir SL | 25.000€ – 75.000€ al 3.8% |
+| Lanzadera / Demium (aceleradoras) | Con MVP validado | 20.000€ + mentoring |
+| Business Angels | Con métricas reales | 50.000€ – 200.000€ |
+
+### Métricas clave desde el día 1
+- **CAC** — Coste de Adquisición de Cliente
+- **LTV** — Valor de Vida del Cliente
+- **GMV** — Total de transacciones procesadas
+- **Take rate** — Ingresos plataforma / GMV (objetivo: 20%)
+- **Retención a 30 días** — publishers y seekers por separado
+- **NPS** — Net Promoter Score
+
+### Próximos pasos concretos
+```
+Esta semana:
+1. Activar Stripe producción (live keys)
+2. Subir a Google Play (Internal Testing)
+3. Primeras 10 reservas reales con conocidos
+
+Próximo mes:
+4. Constituir SL
+5. Lanzar en Madrid con campaña orgánica
+6. Hablar con Lanzadera o Demium
+
+Trimestre:
+7. 100 reservas completadas → validación del modelo
+8. Ronda pre-seed si hay tracción
+```
+
+### Plan de Test antes del lanzamiento
+```
+Necesitas:
+- 2 móviles Android con el APK instalado
+- 2 cuentas distintas
+- Tarjeta test Stripe: 4242 4242 4242 4242
+
+Flujo completo:
+[ ] Registro + aceptar términos
+[ ] Publisher publica plaza (verificación GPS <150m)
+[ ] Plaza aparece en mapa del seeker en <5 segundos
+[ ] Seeker reserva → cuenta atrás 5 min
+[ ] Seeker confirma llegada → timer activo
+[ ] Finalizar y pagar con tarjeta test
+[ ] Publisher recibe notificación de pago
+[ ] Seeker valora la plaza
+[ ] Cancelar reserva → plaza vuelve a estar disponible
+[ ] Reportar plaza → tras 3 reportes se oculta automáticamente
+
+Casos límite:
+[ ] Usuario Free intenta reservar → modal de suscripción
+[ ] Usuario Basic con 10 reservas → bloqueado
+[ ] Dos seekers reservan a la vez → solo uno lo consigue
+[ ] Publisher publica a >150m → botón desactivado
+```
