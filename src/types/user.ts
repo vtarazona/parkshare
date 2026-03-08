@@ -19,4 +19,5 @@ export interface UserProfile {
   subscriptionExpiresAt: Timestamp | null;
   monthlyReservationCount: number;
   lastReservationResetAt: Timestamp | null;
+  onboardingCompleted: boolean;
 }

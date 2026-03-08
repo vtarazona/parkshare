@@ -284,7 +284,7 @@ reservations/{reservationId}
 8. ✅ ~~Analytics~~ — hecho
 9. ✅ ~~Verificación GPS~~ — hecho
 10. ✅ ~~Sistema de reportes~~ — hecho
-11. **Onboarding** — mejora conversión nuevos usuarios
+11. ✅ ~~Onboarding~~ — hecho
 12. **Stripe producción** — necesario para ingresos reales
 13. **Google Play** — lanzamiento Android
 14. **Notificaciones proximidad** — engagement

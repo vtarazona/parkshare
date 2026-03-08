@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View, StyleSheet, Image } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { RootStackParamList } from '../types/navigation';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
+import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 import SpotDetailsScreen from '../screens/map/SpotDetailsScreen';
 import PaymentScreen from '../screens/payment/PaymentScreen';
 import PaymentSuccessScreen from '../screens/payment/PaymentSuccessScreen';
@@ -14,13 +15,27 @@ import SubscriptionScreen from '../screens/subscription/SubscriptionScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
 import PrivacyPolicyScreen from '../screens/legal/PrivacyPolicyScreen';
 import TermsScreen from '../screens/legal/TermsScreen';
+import { useAppStore } from '../stores/appStore';
+import { getUserProfile } from '../services/authService';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
   const { user, loading } = useAuth();
+  const { userProfile, setUserProfile } = useAppStore();
 
-  if (loading) {
+  useEffect(() => {
+    if (user && !userProfile) {
+      getUserProfile(user.uid).then((profile) => {
+        if (profile) setUserProfile(profile);
+      });
+    }
+    if (!user) {
+      setUserProfile(null);
+    }
+  }, [user]);
+
+  if (loading || (user && !userProfile)) {
     return (
       <View style={styles.loading}>
         <Image
@@ -35,6 +50,10 @@ export default function RootNavigator() {
 
   if (!user) {
     return <AuthStack />;
+  }
+
+  if (!userProfile?.onboardingCompleted) {
+    return <OnboardingScreen />;
   }
 
   return (

@@ -33,6 +33,7 @@ export async function signUp(email: string, password: string, displayName: strin
     subscriptionExpiresAt: null,
     monthlyReservationCount: 0,
     lastReservationResetAt: null,
+    onboardingCompleted: false,
   };
 
   await setDoc(doc(db, 'users', user.uid), userProfile);
@@ -64,6 +65,11 @@ export async function signInWithGoogle(idToken: string) {
       totalEarnings: 0,
       averageRating: 0,
       ratingCount: 0,
+      subscriptionTier: 'free',
+      subscriptionExpiresAt: null,
+      monthlyReservationCount: 0,
+      lastReservationResetAt: null,
+      onboardingCompleted: false,
     });
   }
 
